@@ -9,17 +9,15 @@ func TestValidIdcard(t *testing.T) {
 	pr2 := "37098220070721770X"
 	pe1 := "370982230707217707"
 	pe2 := "370982230707217707"
-	r1, _ := ValidIdcard(pr1)
-	r2, _ := ValidIdcard(pr2)
-	e1, _ := ValidIdcard(pe1)
-	e2, _ := ValidIdcard(pe2)
+	r1:= ValidIdcard(pr1)
+	r2:= ValidIdcard(pr2)
+	e1:= ValidIdcard(pe1)
+	e2:= ValidIdcard(pe2)
 	if !r1 || !r2 {
 		t.Error("ValidIdcard()正确身份证未通过。")
-		return
 	}
 	if e1 || e2 {
 		t.Error("ValidIdcard()错误身份证通过。")
-		return
 	}
 }
 func TestValidChinese(t *testing.T) {
@@ -33,11 +31,9 @@ func TestValidChinese(t *testing.T) {
 	e2 := ValidChinese(pe2)
 	if !r1 || !r2 {
 		t.Error("ValidChinese()正确未通过。")
-		return
 	}
 	if e1 || e2 {
 		t.Error("ValidChinese()错误通过。")
-		return
 	}
 }
 func TestValidIpv4(t *testing.T) {
