@@ -1,49 +1,59 @@
 package servlet
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"net/http"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 //一个简易的Controller
 type Controller interface {
-	HandAction(http.ResponseWriter, *http.Request) error
+	HandAction(res http.ResponseWriter, req *http.Request, hand *Handler) error
 }
 
 //一个简易的处理状态Controller
 type ControllerStatus interface {
-	HandStatus(res http.ResponseWriter, req *http.Request, status int, msg string) error
+	HandStatus(res http.ResponseWriter, req *http.Request, status int, msg string, hand *Handler) error
 }
 
 //简易过滤器 error不为nil时，匹配路径不能访问
 type ControllerFilter interface {
-	HandFilter(req *http.Request) error
+	HandFilter(req *http.Request, hand *Handler) error
 }
 type Handler struct {
 	http.Handler
-	controllers      map[string]Controller       //注册的控制器
-	controllerStatus map[int]ControllerStatus    //注册的状态控制器
-	controllerFilter map[string]ControllerFilter //注册过滤器
+	ViewPrefix       string                      //默认的视图地址前缀
+	StaticPrefix     string                      //默认的静态资源地址前缀
+	controllers      map[string]*Controller      //注册的控制器
+	controllerStatus map[int]*ControllerStatus    //注册的状态控制器
+	controllerFilter map[string]*ControllerFilter //注册过滤器
+}
+
+func NewHandler(viewPrefix, staticPrefix string) *Handler {
+	hand := new(Handler)
+	hand.StaticPrefix = staticPrefix
+	hand.ViewPrefix = viewPrefix
+	return hand
 }
 
 //注册一个控制器
 //path 以*结尾时，模糊匹配*部分，执行优先级较低
 func (hand *Handler) RegController(path string, controller Controller) {
-	if hand.controllers==nil{
-		hand.controllers=make(map[string]Controller)
+	if hand.controllers == nil {
+		hand.controllers = make(map[string]*Controller)
 	}
 	if hand.controllers[path] != nil {
 		log.Fatal("注册Controller路径重复,Path：", path)
 	} else {
-		hand.controllers[path] = controller
+		hand.controllers[path] = &controller
 	}
 }
 
 //注册一个状态控制器
 //主要为404、500
 func (hand *Handler) RegControllerStatus(status int, controller ControllerStatus) {
-	hand.controllerStatus[status] = controller
+	hand.controllerStatus[status] = &controller
 }
 
 //注册一个过滤器
@@ -51,7 +61,7 @@ func (hand *Handler) RegControllerFilter(path string, filter ControllerFilter) {
 	if hand.controllerFilter[path] != nil {
 		log.Fatal("注册ControllerFilter路径重复,Path：", path)
 	} else {
-		hand.controllerFilter[path] = filter
+		hand.controllerFilter[path] = &filter
 	}
 }
 
@@ -64,7 +74,7 @@ func (hand *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	for k, v := range hand.controllerFilter {
 		kt := strings.TrimRight(k, "*")
 		if path == k || strings.HasPrefix(path, kt) {
-			err = v.HandFilter(req)
+			err = (*v).HandFilter(req, hand)
 		}
 	}
 
@@ -73,7 +83,7 @@ func (hand *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		//路径完全匹配时执行
 		for k, v := range hand.controllers {
 			if path == k {
-				err = v.HandAction(res, req)
+				err = (*v).HandAction(res, req, hand)
 				isFind = true
 			}
 		}
@@ -82,7 +92,7 @@ func (hand *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			for k, v := range hand.controllers {
 				kt := strings.TrimRight(k, "*")
 				if strings.HasPrefix(path, kt) {
-					err = v.HandAction(res, req)
+					err = (*v).HandAction(res, req, hand)
 					isFind = true
 				}
 			}
@@ -91,7 +101,7 @@ func (hand *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	//处理404情况
 	if err == nil && !isFind {
 		if hand.controllerStatus[http.StatusNotFound] != nil {
-			err = (hand.controllerStatus[http.StatusNotFound]).HandStatus(res, req, http.StatusNotFound, "")
+			err = (*hand.controllerStatus[http.StatusNotFound]).HandStatus(res, req, http.StatusNotFound, "", hand)
 		} else {
 			http.NotFound(res, req)
 		}
@@ -99,12 +109,12 @@ func (hand *Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	//处理错误的情况
 	if err != nil {
 		if hand.controllerStatus[http.StatusInternalServerError] != nil {
-			err = (hand.controllerStatus[http.StatusInternalServerError]).HandStatus(res, req, http.StatusInternalServerError, err.Error())
+			err = (*hand.controllerStatus[http.StatusInternalServerError]).HandStatus(res, req, http.StatusInternalServerError, err.Error(), hand)
 		} else {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 		}
 	}
 }
-//默认处理器
-var DefaultHandler  = new(Handler)
 
+//默认处理器
+var DefaultHandler = new(Handler)

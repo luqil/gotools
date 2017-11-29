@@ -13,8 +13,8 @@ func TestConnection(t *testing.T) {
 	port1 := os.Getenv("PORT1")
 	if port0 == "" || port1 == "" {
 		//t.Skip("Skipping test because PORT0 or PORT1 environment variable is not set")
-		port0="/dev/ttyS0"
-		port1="/dev/ttyS1"
+		port0 = "/dev/ttyS0"
+		port1 = "/dev/ttyS1"
 	}
 	c0 := &Config{Name: port0, Baud: 115200}
 	c1 := &Config{Name: port1, Baud: 115200}

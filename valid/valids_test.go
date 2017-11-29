@@ -9,10 +9,10 @@ func TestValidIdcard(t *testing.T) {
 	pr2 := "37098220070721770X"
 	pe1 := "370982230707217707"
 	pe2 := "370982230707217707"
-	r1:= ValidIdcard(pr1)
-	r2:= ValidIdcard(pr2)
-	e1:= ValidIdcard(pe1)
-	e2:= ValidIdcard(pe2)
+	r1 := ValidIdcard(pr1)
+	r2 := ValidIdcard(pr2)
+	e1 := ValidIdcard(pe1)
+	e2 := ValidIdcard(pe2)
 	if !r1 || !r2 {
 		t.Error("ValidIdcard()正确身份证未通过。")
 	}
